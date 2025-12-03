@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>COVID-19 India Simple Dashboard</title>
+<style>
+
+    body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 10px;
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+p {
+    margin-top: 0;
+    font-size: 14px;
+}
+
+.buttons {
+    margin: 15px 0;
+}
+
+button {
+    padding: 8px 12px;
+    margin: 5px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #f2f2f2;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background: #e0e0e0;
+}
+
+#output {
+    margin-top: 20px;
+    text-align: left;
+    border: 1px solid #ddd;
+    padding: 10px;
+    min-height: 120px;
+    white-space: pre-wrap;
+    font-size: 14px;
+}
+
+</style>
+</head>
+<body>
+    <h1>COVID-19 </h1>
+  
+
+    <div class="buttons">
+        <button onclick="loadCases()">Case Counts</button>
+        <button onclick="loadHospitals()">Hospitals & Beds</button>
+        <button onclick="loadContacts()">Contacts & Helpline</button>
+        <button onclick="loadTesting()">Testing Stats</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+    
+    function setOutput(text) {
+    var box = document.getElementById("output")
+    box.innerText = text
+}
+
+function loadCases() {
+    setOutput("Loading case counts...")
+    fetch("https://api.rootnet.in/covid19-in/stats/latest")
+        .then(function (response) {
+            return response.json()
+        })
+        .then(function (data) {
+            if (!data || !data.data || !data.data.summary) {
+                setOutput("No data found")
+                return
+            }
+
+            var summary = data.data.summary
+            var text = ""
+            text += "Case Counts (India)\n"
+            text += "-------------------\n"
+            text += "Total cases: " + summary.total + "\n"
+            text += "Confirmed cases (Indian): " + summary.confirmedCasesIndian + "\n"
+            text += "Confirmed cases (Foreign): " + summary.confirmedCasesForeign + "\n"
+            text += "Recovered: " + summary.discharged + "\n"
+            text += "Deaths: " + summary.deaths + "\n"
+            text += "Total confirmed: " + summary.confirmed + "\n"
+
+            setOutput(text)
+        })
+        .catch(function () {
+            setOutput("Error loading case data")
+        })
+}
+
+function loadHospitals() {
+    setOutput("Loading hospitals and beds...")
+    fetch("https://api.rootnet.in/covid19-in/hospitals/beds")
+        .then(function (response) {
+            return response.json()
+        })
+        .then(function (data) {
+            if (!data || !data.data || !data.data.summary) {
+                setOutput("No data found")
+                return
+            }
+
+            var summary = data.data.summary
+            var text = ""
+            text += "Hospitals and Beds (India)\n"
+            text += "--------------------------\n"
+            text += "Total hospitals: " + summary.totalHospitals + "\n"
+            text += "Rural hospitals: " + summary.ruralHospitals + "\n"
+            text += "Urban hospitals: " + summary.urbanHospitals + "\n\n"
+            text += "Total beds: " + summary.totalBeds + "\n"
+            text += "Rural beds: " + summary.ruralBeds + "\n"
+            text += "Urban beds: " + summary.urbanBeds + "\n"
+
+            setOutput(text)
+        })
+        .catch(function () {
+            setOutput("Error loading hospitals data")
+        })
+}
+
+function loadContacts() {
+    setOutput("Loading contacts and helpline...")
+    fetch("https://api.rootnet.in/covid19-in/contacts")
+        .then(function (response) {
+            return response.json()
+        })
+        .then(function (data) {
+            if (!data || !data.data || !data.data.contacts || !data.data.contacts.primary) {
+                setOutput("No data found")
+                return
+            }
+
+            var primary = data.data.contacts.primary
+            var text = ""
+            text += "National Helpline\n"
+            text += "-----------------\n"
+            text += "Number: " + primary.number + "\n"
+            text += "Toll Free: " + primary["number-tollfree"] + "\n"
+            text += "Email: " + primary.email + "\n"
+            text += "Twitter: " + primary.twitter + "\n"
+            text += "Facebook: " + primary.facebook + "\n"
+            text += "Media: " + primary.media + "\n"
+            text += "Website: " + primary["source"] + "\n"
+
+            setOutput(text)
+        })
+        .catch(function () {
+            setOutput("Error loading contacts data")
+        })
+}
+
+function loadTesting() {
+    setOutput("Loading testing stats...")
+    fetch("https://api.rootnet.in/covid19-in/stats/testing/history")
+        .then(function (response) {
+            return response.json()
+        })
+        .then(function (data) {
+            if (!data || !data.data || data.data.length === 0) {
+                setOutput("No data found")
+                return
+            }
+
+            var history = data.data
+            var last = history[history.length - 1]
+
+            var text = ""
+            text += "Testing Stats (Latest Day)\n"
+            text += "--------------------------\n"
+            text += "Day: " + last.day + "\n"
+            if (last.totalSamplesTested !== undefined) {
+                text += "Total samples tested: " + last.totalSamplesTested + "\n"
+            }
+            if (last.totalIndividualsTested !== undefined) {
+                text += "Total individuals tested: " + last.totalIndividualsTested + "\n"
+            }
+            if (last.totalPositiveCases !== undefined) {
+                text += "Total positive cases: " + last.totalPositiveCases + "\n"
+            }
+            if (last.samplesReportedToday !== undefined) {
+                text += "Samples reported today: " + last.samplesReportedToday + "\n"
+            }
+
+            setOutput(text)
+        })
+        .catch(function () {
+            setOutput("Error loading testing data")
+        })
+}
+</script>
+</body>
+</html>
