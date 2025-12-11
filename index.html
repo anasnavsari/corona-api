@@ -1,206 +1,278 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>COVID-19 India Simple Dashboard</title>
-<style>
-
-    body {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 10px;
-    text-align: center;
-}
-
-h1 {
-    margin-bottom: 5px;
-}
-
-p {
-    margin-top: 0;
-    font-size: 14px;
-}
-
-.buttons {
-    margin: 15px 0;
-}
-
-button {
-    padding: 8px 12px;
-    margin: 5px;
-    border: 1px solid #333;
-    border-radius: 4px;
-    background: #f2f2f2;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-button:hover {
-    background: #e0e0e0;
-}
-
-#output {
-    margin-top: 20px;
-    text-align: left;
-    border: 1px solid #ddd;
-    padding: 10px;
-    min-height: 120px;
-    white-space: pre-wrap;
-    font-size: 14px;
-}
-
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>COVID-19 India - Dashboard (Search Fix)</title>
+  <style>
+    :root{--maxw:1100px;--bg:#f7f9fc;--card:#ffffff;--muted:#6b7280;--accent:#0f172a}
+    body{font-family:Arial, Helvetica, sans-serif;background:var(--bg);color:var(--accent);margin:0;padding:24px;display:flex;justify-content:center}
+    .container{width:100%;max-width:var(--maxw)}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    .search{display:flex;gap:8px}
+    input[type=text]{padding:10px;border-radius:8px;border:1px solid #ddd;min-width:260px}
+    button{padding:9px 12px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer}
+    button.primary{background:#0369a1;color:#fff;border-color:#0369a1}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04)}
+    .wide{grid-column:span 3}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:left}
+    th{font-weight:700;color:var(--muted)}
+    .muted{color:var(--muted);font-size:13px}
+    .output{white-space:pre-wrap;font-family:monospace;font-size:13px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr} .wide{grid-column:span 1}}
+  </style>
 </head>
 <body>
-    <h1>COVID-19 </h1>
-  
+  <div class="container">
+    <header>
+      <div>
+        <h1>COVID-19 India Dashboard</h1>
+        
+      
+    </header>
 
-    <div class="buttons">
-        <button onclick="loadCases()">Case Counts</button>
-        <button onclick="loadHospitals()">Hospitals & Beds</button>
-        <button onclick="loadContacts()">Contacts & Helpline</button>
-        <button onclick="loadTesting()">Testing Stats</button>
+    <div class="controls">
+      <div class="search">
+        <input id="stateInput" type="text" placeholder="Search state or UT (e.g. Gujarat)" />
+        <button id="searchBtn" class="primary">Search</button>
+      </div>
+      <button id="showAllBtn">Show all states</button>
+      <button id="refreshBtn">Refresh</button>
     </div>
 
-    <div id="output"></div>
+    <div class="grid">
+      <div class="card">
+        <h3>National Summary</h3>
+        <div id="national" class="muted">Loading...</div>
+      </div>
 
-    <script>
-    
-    function setOutput(text) {
-    var box = document.getElementById("output")
-    box.innerText = text
-}
+      <div class="card">
+        <h3>Testing (Latest)</h3>
+        <div id="testing" class="muted">Loading...</div>
+      </div>
 
-function loadCases() {
-    setOutput("Loading case counts...")
-    fetch("https://api.rootnet.in/covid19-in/stats/latest")
-        .then(function (response) {
-            return response.json()
-        })
-        .then(function (data) {
-            if (!data || !data.data || !data.data.summary) {
-                setOutput("No data found")
-                return
-            }
+      <div class="card">
+        <h3>Contacts</h3>
+        <div id="contacts" class="muted">Loading...</div>
+      </div>
 
-            var summary = data.data.summary
-            var text = ""
-            text += "Case Counts (India)\n"
-            text += "-------------------\n"
-            text += "Total cases: " + summary.total + "\n"
-            text += "Confirmed cases (Indian): " + summary.confirmedCasesIndian + "\n"
-            text += "Confirmed cases (Foreign): " + summary.confirmedCasesForeign + "\n"
-            text += "Recovered: " + summary.discharged + "\n"
-            text += "Deaths: " + summary.deaths + "\n"
-            text += "Total confirmed: " + summary.confirmed + "\n"
+      <div class="card wide">
+        <h3>State-wise Cases</h3>
+        <div id="statesTable">Loading...</div>
+      </div>
 
-            setOutput(text)
-        })
-        .catch(function () {
-            setOutput("Error loading case data")
-        })
-}
+      <div class="card wide">
+        <h3>State-wise Hospitals & Beds</h3>
+        <div id="bedsTable">Loading...</div>
+      </div>
 
-function loadHospitals() {
-    setOutput("Loading hospitals and beds...")
-    fetch("https://api.rootnet.in/covid19-in/hospitals/beds")
-        .then(function (response) {
-            return response.json()
-        })
-        .then(function (data) {
-            if (!data || !data.data || !data.data.summary) {
-                setOutput("No data found")
-                return
-            }
+      <div class="card wide">
+        <h3>Output</h3>
+        <div id="output" class="output">Ready</div>
+      </div>
+    </div>
+  </div>
 
-            var summary = data.data.summary
-            var text = ""
-            text += "Hospitals and Beds (India)\n"
-            text += "--------------------------\n"
-            text += "Total hospitals: " + summary.totalHospitals + "\n"
-            text += "Rural hospitals: " + summary.ruralHospitals + "\n"
-            text += "Urban hospitals: " + summary.urbanHospitals + "\n\n"
-            text += "Total beds: " + summary.totalBeds + "\n"
-            text += "Rural beds: " + summary.ruralBeds + "\n"
-            text += "Urban beds: " + summary.urbanBeds + "\n"
+  <script>
+  const api = {
+    latest: 'https://api.rootnet.in/covid19-in/stats/latest',
+    beds: 'https://api.rootnet.in/covid19-in/hospitals/beds',
+    testingLatest: 'https://api.rootnet.in/covid19-in/stats/testing/latest',
+    contacts: 'https://api.rootnet.in/covid19-in/contacts'
+  };
 
-            setOutput(text)
-        })
-        .catch(function () {
-            setOutput("Error loading hospitals data")
-        })
-}
+  let dataCache = { latest: null, beds: null, testing: null, contacts: null };
 
-function loadContacts() {
-    setOutput("Loading contacts and helpline...")
-    fetch("https://api.rootnet.in/covid19-in/contacts")
-        .then(function (response) {
-            return response.json()
-        })
-        .then(function (data) {
-            if (!data || !data.data || !data.data.contacts || !data.data.contacts.primary) {
-                setOutput("No data found")
-                return
-            }
+  function setText(id, value){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = String(value);
+  }
 
-            var primary = data.data.contacts.primary
-            var text = ""
-            text += "National Helpline\n"
-            text += "-----------------\n"
-            text += "Number: " + primary.number + "\n"
-            text += "Toll Free: " + primary["number-tollfree"] + "\n"
-            text += "Email: " + primary.email + "\n"
-            text += "Twitter: " + primary.twitter + "\n"
-            text += "Facebook: " + primary.facebook + "\n"
-            text += "Media: " + primary.media + "\n"
-            text += "Website: " + primary["source"] + "\n"
+  function normalizeNameSimple(s){
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]/g,'');
+  }
 
-            setOutput(text)
-        })
-        .catch(function () {
-            setOutput("Error loading contacts data")
-        })
-}
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    if (m === 0) return n;
+    if (n === 0) return m;
+    const dp = Array.from({length: m+1}, ()=> new Array(n+1).fill(0));
+    for (let i=0;i<=m;i++) dp[i][0]=i;
+    for (let j=0;j<=n;j++) dp[0][j]=j;
+    for (let i=1;i<=m;i++){
+      for (let j=1;j<=n;j++){
+        const cost = a[i-1] === b[j-1] ? 0 : 1;
+        dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+      }
+    }
+    return dp[m][n];
+  }
 
-function loadTesting() {
-    setOutput("Loading testing stats...")
-    fetch("https://api.rootnet.in/covid19-in/stats/testing/history")
-        .then(function (response) {
-            return response.json()
-        })
-        .then(function (data) {
-            if (!data || !data.data || data.data.length === 0) {
-                setOutput("No data found")
-                return
-            }
+  async function fetchJson(url){
+    try{
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('Network error');
+      return await r.json();
+    } catch(e){
+      return { error: e.message };
+    }
+  }
 
-            var history = data.data
-            var last = history[history.length - 1]
+  async function loadData(){
+    setText('output','Refreshing data...');
+    const [latestRes, bedsRes, testingRes, contactsRes] = await Promise.all([
+      fetchJson(api.latest), fetchJson(api.beds), fetchJson(api.testingLatest), fetchJson(api.contacts)
+    ]);
 
-            var text = ""
-            text += "Testing Stats (Latest Day)\n"
-            text += "--------------------------\n"
-            text += "Day: " + last.day + "\n"
-            if (last.totalSamplesTested !== undefined) {
-                text += "Total samples tested: " + last.totalSamplesTested + "\n"
-            }
-            if (last.totalIndividualsTested !== undefined) {
-                text += "Total individuals tested: " + last.totalIndividualsTested + "\n"
-            }
-            if (last.totalPositiveCases !== undefined) {
-                text += "Total positive cases: " + last.totalPositiveCases + "\n"
-            }
-            if (last.samplesReportedToday !== undefined) {
-                text += "Samples reported today: " + last.samplesReportedToday + "\n"
-            }
+    if (!latestRes.error) dataCache.latest = latestRes.data || latestRes;
+    if (!bedsRes.error) dataCache.beds = bedsRes.data || bedsRes;
+    if (!testingRes.error) dataCache.testing = testingRes.data || testingRes;
+    if (!contactsRes.error) dataCache.contacts = contactsRes.data || contactsRes;
 
-            setOutput(text)
-        })
-        .catch(function () {
-            setOutput("Error loading testing data")
-        })
-}
-</script>
+    showNational();
+    showTesting();
+    showContacts();
+    showStatesTable();
+    showBedsTable();
+
+    setText('output','Data loaded');
+  }
+
+  function showNational(){
+    const d = dataCache.latest;
+    if (!d || !d.summary){ setText('national','No data'); return }
+    const s = d.summary;
+    const updated = d.lastRefreshed || d.lastUpdated || '';
+    const txt = 'Total: ' + (s.total ?? 'N/A') + '\n'
+      + 'Confirmed (Indian): ' + (s.confirmedCasesIndian ?? 'N/A') + '\n'
+      + 'Confirmed (Foreign): ' + (s.confirmedCasesForeign ?? 'N/A') + '\n'
+      + 'Recovered: ' + (s.discharged ?? 'N/A') + '\n'
+      + 'Deaths: ' + (s.deaths ?? 'N/A') + '\n'
+      + 'Updated: ' + updated;
+    setText('national', txt);
+  }
+
+  function showTesting(){
+    const t = dataCache.testing;
+    if (!t) { setText('testing','No data'); return }
+    const s = t.summary || t;
+    const txt = 'Samples tested: ' + (s.totalSamplesTested ?? 'N/A') + '\n'
+      + 'Individuals tested: ' + (s.totalIndividualsTested ?? 'N/A') + '\n'
+      + 'Positive cases: ' + (s.totalPositiveCases ?? 'N/A');
+    setText('testing', txt);
+  }
+
+  function showContacts(){
+    const c = dataCache.contacts;
+    if (!c || !c.contacts || !c.contacts.primary){ setText('contacts','No data'); return }
+    const p = c.contacts.primary;
+    const txt = 'Number: ' + (p.number || 'N/A') + '\n'
+      + 'Toll-free: ' + (p['number-tollfree'] || 'N/A') + '\n'
+      + 'Email: ' + (p.email || 'N/A') + '\n'
+      + 'Website: ' + (p.source || 'N/A');
+    setText('contacts', txt);
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function showStatesTable(){
+    const wrap = document.getElementById('statesTable');
+    const d = dataCache.latest;
+    if (!d || !d.regional){ wrap.textContent = 'No state data'; return }
+    const rows = d.regional.map(r => ({ name: r.loc || r.region || 'Unknown', confirmed: r.totalConfirmed ?? r.confirmed ?? 'N/A' }));
+    let html = '<table><thead><tr><th>State / UT</th><th>Confirmed</th></tr></thead><tbody>';
+    rows.forEach(r => {
+      html += '<tr><td>' + escapeHtml(r.name) + '</td><td>' + escapeHtml(r.confirmed) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+    window.stateList = rows.map(r => r.name);
+  }
+
+  function showBedsTable(){
+    const wrap = document.getElementById('bedsTable');
+    const b = dataCache.beds;
+    if (!b || !b.regional){ wrap.textContent = 'No beds data'; return }
+    let html = '<table><thead><tr><th>State / UT</th><th>Hospitals</th><th>Beds</th></tr></thead><tbody>';
+    b.regional.forEach(r => {
+      const name = r.state || r.loc || r.region || 'Unknown';
+      const hosp = r.totalHospitals ?? r.hospitals ?? 'N/A';
+      const beds = r.totalBeds ?? r.beds ?? 'N/A';
+      html += '<tr><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(hosp) + '</td><td>' + escapeHtml(beds) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  }
+
+  function findBedRowByName(name){
+    const b = dataCache.beds && (dataCache.beds.regional || dataCache.beds);
+    if (!b || !Array.isArray(b)) return null;
+    const target = normalizeNameSimple(name);
+    for (const r of b){
+      const rn = normalizeNameSimple(r.state || r.loc || r.region || '');
+      if (rn === target || rn.includes(target) || target.includes(rn)) return r;
+      const dist = levenshtein(rn, target);
+      if (dist <= 2) return r;
+    }
+    return null;
+  }
+
+  function searchStateByName(name){
+    if (!name) { setText('output','Enter a state name'); return }
+    const q = name.trim();
+    const qn = normalizeNameSimple(q);
+    const d = dataCache.latest;
+    if (!d || !d.regional){ setText('output','State data not loaded'); return }
+    const matches = [];
+    for (const r of d.regional){
+      const rn = normalizeNameSimple(r.loc || r.region || '');
+      if (rn.includes(qn) || qn.includes(rn) || levenshtein(rn, qn) <= 2){
+        matches.push(r);
+      }
+    }
+    if (matches.length === 0){ setText('output','No state found for: ' + q); return }
+    let out = '';
+    for (const m of matches){
+      const nm = m.loc || m.region || 'Unknown';
+      out += 'State: ' + nm + '\n';
+      out += 'Confirmed: ' + (m.totalConfirmed ?? m.confirmed ?? 'N/A') + '\n';
+      out += 'Recovered: ' + (m.discharged ?? 'N/A') + '\n';
+      out += 'Deaths: ' + (m.deaths ?? 'N/A') + '\n';
+      const bedRow = findBedRowByName(nm);
+      if (bedRow){
+        out += 'Hospitals: ' + (bedRow.totalHospitals ?? bedRow.hospitals ?? 'N/A') + '\n';
+        out += 'Beds: ' + (bedRow.totalBeds ?? bedRow.beds ?? 'N/A') + '\n';
+      } else {
+        out += 'Hospitals / beds: Not available\n';
+      }
+      out += '---\n';
+    }
+    setText('output', out);
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', function(){ searchStateByName(document.getElementById('stateInput').value); });
+  document.getElementById('showAllBtn').addEventListener('click', function(){
+    const table = document.querySelector('#statesTable table');
+    if (table) setText('output', table.outerHTML);
+    else setText('output','States table not ready');
+  });
+  document.getElementById('refreshBtn').addEventListener('click', loadData);
+  document.getElementById('stateInput').addEventListener('keyup', function(e){ if (e.key === 'Enter') searchStateByName(e.target.value); });
+
+  loadData();
+  </script>
 </body>
 </html>
